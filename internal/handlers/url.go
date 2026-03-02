@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/vilas-gannaram/url-shortener/storage"
-	"github.com/vilas-gannaram/url-shortener/utils"
+	"github.com/vilas-gannaram/url-shortener/internal/storage"
+	"github.com/vilas-gannaram/url-shortener/internal/utils"
 	"gorm.io/gorm"
 )
 

@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/vilas-gannaram/url-shortener/handlers"
-	"github.com/vilas-gannaram/url-shortener/storage"
+	"github.com/vilas-gannaram/url-shortener/internal/handlers"
+	"github.com/vilas-gannaram/url-shortener/internal/storage"
 )
 
 func main() {
