@@ -10,8 +10,6 @@ func Encode(number int64) string {
 	}
 	var result strings.Builder
 
-	println(alphabet)
-
 	for number > 0 {
 		result.WriteByte(alphabet[number%62])
 		number = number / 62

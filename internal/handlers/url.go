@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/vilas-gannaram/url-shortener/internal/storage"
@@ -27,21 +30,64 @@ func (h *URLHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	newRecord := storage.URLMapping{OriginalURL: req.URL}
-	if err := h.DB.Create(&newRecord).Error; err != nil {
+	// Parse the URL
+	u, err := url.ParseRequestURI(req.URL)
+	if err != nil {
+		http.Error(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+
+	// Validate Scheme (Protocol)
+	if u.Scheme != "http" && u.Scheme != "https" {
+		http.Error(w, "Only HTTP and HTTPS protocols are supported", http.StatusBadRequest)
+		return
+	}
+
+	// Validate Host -- Ensure the host isn't empty (e.g., "https://")
+	if u.Host == "" || !strings.Contains(u.Host, ".") {
+		http.Error(w, "URL must have a valid domain", http.StatusBadRequest)
+		return
+	}
+
+	var shortKey string
+
+	// DB Transaction
+	err = h.DB.Transaction(func(tx *gorm.DB) error {
+
+		newRecord := storage.URLMapping{OriginalURL: req.URL}
+		if err := tx.Create(&newRecord).Error; err != nil {
+			return err
+		}
+
+		shortKey = utils.Encode(int64(newRecord.ID))
+		if err := tx.Model(&newRecord).Update("ShortKey", shortKey).Error; err != nil {
+			return err
+		}
+
+		stats := storage.URLStats{URLMappingID: newRecord.ID, RedirectedCount: 0}
+		if err := tx.Create(&stats).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
 
-	stats := storage.URLStats{URLMappingID: newRecord.ID, RedirectedCount: 0}
-	h.DB.Create(&stats)
+	domain := r.Host
+	scheme := "http"
+	if r.TLS != nil {
+		scheme = "https"
+	}
 
-	shortKey := utils.Encode(int64(newRecord.ID))
-	h.DB.Model(&newRecord).Update("ShortKey", shortKey)
+	fullURL := fmt.Sprintf("%s://%s/%s", scheme, domain, shortKey)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"short_url": "http://localhost:8080/" + shortKey,
+		"short_url": fullURL,
 	})
 }
 
@@ -50,15 +96,20 @@ func (h *URLHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	shortKey := chi.URLParam(r, "shortKey")
 	var mapping storage.URLMapping
 
+	// Fetching the mapping from DB
 	if err := h.DB.Where("short_key = ?", shortKey).First(&mapping).Error; err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	h.DB.Model(&storage.URLStats{}).
-		Where("url_mapping_id = ?", mapping.ID).
-		Update("redirected_count", gorm.Expr("redirected_count + ?", 1))
+	// Incrementing the count in background, making the redirect faster
+	go func(id uint) {
+		h.DB.Model(&storage.URLStats{}).
+			Where("url_mapping_id = ?", id).
+			UpdateColumn("redirected_count", gorm.Expr("redirected_count + ?", 1))
+	}(mapping.ID)
 
+	// Redirecting to the original URL
 	http.Redirect(w, r, mapping.OriginalURL, http.StatusFound)
 }
 
