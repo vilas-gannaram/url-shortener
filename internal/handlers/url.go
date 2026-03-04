@@ -19,8 +19,8 @@ type ShortenRequest struct {
 	URL string `json:"url"`
 }
 
-// ShortenURL handles POST /shorten
-func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
+// Shorten handles POST /shorten
+func (h *URLHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 	var req ShortenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -32,6 +32,9 @@ func (h *URLHandler) ShortenURL(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Database error", http.StatusInternalServerError)
 		return
 	}
+
+	stats := storage.URLStats{URLMappingID: newRecord.ID, RedirectedCount: 0}
+	h.DB.Create(&stats)
 
 	shortKey := utils.Encode(int64(newRecord.ID))
 	h.DB.Model(&newRecord).Update("ShortKey", shortKey)
@@ -52,5 +55,14 @@ func (h *URLHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.DB.Model(&storage.URLStats{}).
+		Where("url_mapping_id = ?", mapping.ID).
+		Update("redirected_count", gorm.Expr("redirected_count + ?", 1))
+
 	http.Redirect(w, r, mapping.OriginalURL, http.StatusFound)
+}
+
+// Stats handles GET /stats/{shortKey}
+func (h *URLHandler) Stats(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Stats endpoint not implemented yet"))
 }

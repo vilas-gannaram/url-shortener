@@ -12,8 +12,6 @@ import (
 
 func main() {
 	db := storage.InitDB()
-
-	// Initialize our handlers with the DB connection
 	h := &handlers.URLHandler{DB: db}
 
 	r := chi.NewRouter()
@@ -25,9 +23,9 @@ func main() {
 		w.Write([]byte("URL Shortener is Live"))
 	})
 
-	// Use the methods from our handler struct
-	r.Post("/shorten", h.ShortenURL)
+	r.Post("/shorten", h.Shorten)
 	r.Get("/{shortKey}", h.Redirect)
+	r.Get("/stats/{shortKey}", h.Stats)
 
 	fmt.Println("Server listening on :8080")
 	http.ListenAndServe(":8080", r)
