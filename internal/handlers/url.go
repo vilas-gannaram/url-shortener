@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -104,9 +105,13 @@ func (h *URLHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 	// Incrementing the count in background, making the redirect faster
 	go func(id uint) {
-		h.DB.Model(&storage.URLStats{}).
+		err := h.DB.Model(&storage.URLStats{}).
 			Where("url_mapping_id = ?", id).
-			UpdateColumn("redirected_count", gorm.Expr("redirected_count + ?", 1))
+			UpdateColumn("redirected_count", gorm.Expr("redirected_count + ?", 1)).Error
+
+		if err != nil {
+			log.Println("Error updating stats:", err)
+		}
 	}(mapping.ID)
 
 	// Redirecting to the original URL
