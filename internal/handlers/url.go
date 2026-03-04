@@ -94,6 +94,11 @@ func (h *URLHandler) Shorten(w http.ResponseWriter, r *http.Request) {
 
 // Redirect handles GET /{shortKey}
 func (h *URLHandler) Redirect(w http.ResponseWriter, r *http.Request) {
+
+	// Check for the "Prediction" headers
+	purpose := r.Header.Get("Sec-Purpose")
+	isFakeRequest := strings.Contains(purpose, "prefetch") || strings.Contains(purpose, "prerender")
+
 	shortKey := chi.URLParam(r, "shortKey")
 	var mapping storage.URLMapping
 
@@ -104,15 +109,17 @@ func (h *URLHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Incrementing the count in background, making the redirect faster
-	go func(id uint) {
-		err := h.DB.Model(&storage.URLStats{}).
-			Where("url_mapping_id = ?", id).
-			UpdateColumn("redirected_count", gorm.Expr("redirected_count + ?", 1)).Error
+	if !isFakeRequest {
+		go func(id uint) {
+			err := h.DB.Model(&storage.URLStats{}).
+				Where("url_mapping_id = ?", id).
+				UpdateColumn("redirected_count", gorm.Expr("redirected_count + ?", 1)).Error
 
-		if err != nil {
-			log.Println("Error updating stats:", err)
-		}
-	}(mapping.ID)
+			if err != nil {
+				log.Println("Error updating stats:", err)
+			}
+		}(mapping.ID)
+	}
 
 	// Redirecting to the original URL
 	http.Redirect(w, r, mapping.OriginalURL, http.StatusFound)
