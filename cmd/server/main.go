@@ -41,6 +41,7 @@ func main() {
 	r.Post("/shorten", h.Shorten)
 	r.Get("/{shortKey}", h.Redirect)
 	r.Get("/stats/{shortKey}", h.Stats)
+	r.Get("/urls", h.ListURLs)
 
 	fmt.Println("Server listening on :8080")
 	http.ListenAndServe(":8080", r)

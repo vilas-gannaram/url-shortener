@@ -129,5 +129,44 @@ func (h *URLHandler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 // Stats handles GET /stats/{shortKey}
 func (h *URLHandler) Stats(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Stats endpoint not implemented yet"))
+	shortKey := chi.URLParam(r, "shortKey")
+	var mapping storage.URLMapping
+
+	if err := h.DB.Where("short_key = ?", shortKey).First(&mapping).Error; err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	var stats storage.URLStats
+	if err := h.DB.Where("url_mapping_id = ?", mapping.ID).First(&stats).Error; err != nil {
+		http.Error(w, "Stats not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
+}
+
+// ListURLs handles GET /urls
+func (h *URLHandler) ListURLs(w http.ResponseWriter, r *http.Request) {
+	var results []struct {
+		ID              uint   `json:"id"`
+		OriginalURL     string `json:"original_url"`
+		ShortKey        string `json:"short_key"`
+		RedirectedCount int    `json:"redirected_count"`
+		LastUpdated     int64  `json:"last_updated"`
+	}
+
+	err := h.DB.Table("url_mappings").
+		Select("url_mappings.id, url_mappings.original_url, url_mappings.short_key, url_stats.redirected_count, url_stats.last_updated").
+		Joins("left join url_stats on url_stats.url_mapping_id = url_mappings.id").
+		Scan(&results).Error
+
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(results)
 }
