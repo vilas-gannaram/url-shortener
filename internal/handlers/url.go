@@ -24,11 +24,13 @@ type ShortenRequest struct {
 	URL string `json:"url"`
 }
 
-// We use a Base32-style alphabet (no O, 0, I, 1, L, u)
+// Base32-style alpha-numeric characters (without O, 0, I, 1, L, u).
+// Using go-nanoid for random string generation
 var canonicNanoid, _ = nanoid.CustomASCII("abcdefghjkmnpqrstvwxyz23456789", 8)
 
 // Shorten handles POST /shorten
 func (h *URLHandler) Shorten(w http.ResponseWriter, r *http.Request) {
+
 	// Decode Request Body JSON
 	var req ShortenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
