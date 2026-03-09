@@ -47,10 +47,7 @@ const Dashboard = () => {
 		);
 	}
 
-	const totalClicks = urls.reduce(
-		(acc, curr) => acc + curr.redirected_count,
-		0,
-	);
+	const totalClicks = urls.reduce((acc, curr) => acc + curr.click_count, 0);
 
 	return (
 		<div className='p-8 max-w-6xl mx-auto'>
@@ -75,7 +72,7 @@ const Dashboard = () => {
 			</div>
 
 			<div className='overflow-x-auto'>
-				<table className='table table-xs lg:table-md table-pin-cols'>
+				<table className='table table-xs lg:table-md lg:table-pin-cols'>
 					<thead>
 						<tr>
 							<th>Original URL</th>
@@ -93,7 +90,7 @@ const Dashboard = () => {
 							</tr>
 						) : (
 							urls.map((url) => {
-								const shortFull = `${window.location.origin}/${url.short_key}`;
+								const shortFull = `${import.meta.env.VITE_API_URL}/${url.short_code}`;
 								return (
 									<tr key={url.id}>
 										<td>
@@ -109,12 +106,12 @@ const Dashboard = () => {
 										</td>
 										<td>
 											<span className='badge badge-ghost badge-sm'>
-												/{url.short_key}
+												/{url.short_code}
 											</span>
 										</td>
 										<td>
 											<span className='badge badge-ghost badge-sm'>
-												{url.redirected_count}
+												{url.click_count}
 											</span>
 										</td>
 										<td className=''>
