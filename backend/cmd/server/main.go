@@ -1,19 +1,46 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
+	"github.com/vilas-gannaram/url-shortener/internal/db"
 	"github.com/vilas-gannaram/url-shortener/internal/handlers"
-	"github.com/vilas-gannaram/url-shortener/internal/storage"
 )
 
 func main() {
-	db := storage.InitDB()
-	h := &handlers.URLHandler{DB: db}
+	godotenv.Load()
+	
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL is empty! Check your environment variables.")
+	}
+
+	pool, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		log.Fatalf("Config error: %v", err)
+	}
+	defer pool.Close()
+
+	ctx := context.Background()
+	err = pool.Ping(ctx)
+	if err != nil {
+		log.Fatalf("Could not connect to Supabase: %v", err)
+	}
+
+	queries := db.New(pool)
+	h := &handlers.URLHandler{
+		Queries: queries,
+		Pool:    pool,
+	}
 
 	r := chi.NewRouter()
 
@@ -40,7 +67,7 @@ func main() {
 
 	r.Post("/shorten", h.Shorten)
 	r.Get("/{shortKey}", h.Redirect)
-	r.Get("/stats/{shortKey}", h.Stats)
+	// r.Get("/stats/{shortKey}", h.Stats)
 	r.Get("/urls", h.ListURLs)
 
 	fmt.Println("Server listening on :8080")
