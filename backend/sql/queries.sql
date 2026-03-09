@@ -8,7 +8,7 @@ SELECT
     COALESCE(s.count, 0) AS click_count
 FROM urls u
 LEFT JOIN stats s ON u.id = s.url_id
-ORDER BY u.created_at DESC;
+ORDER BY s.last_updated DESC;
 
 -- name: CreateURL :one
 INSERT INTO urls (short_code, original_url)
