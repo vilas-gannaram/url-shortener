@@ -9,11 +9,10 @@ const Dashboard = () => {
 		const fetchUrls = async () => {
 			try {
 				const response = await fetch('/api/urls');
-				if (!response.ok) {
-					throw new Error('Failed to fetch URLs');
+				if (response.ok) {
+					const data = await response.json();
+					setUrls(data || []);
 				}
-				const data = await response.json();
-				setUrls(data || []);
 			} catch (err) {
 				setError(err.message);
 			} finally {
@@ -31,18 +30,8 @@ const Dashboard = () => {
 
 	if (loading) {
 		return (
-			<div className='flex justify-center items-center h-64'>
-				<span className='loading loading-spinner loading-lg text-primary'></span>
-			</div>
-		);
-	}
-
-	if (error) {
-		return (
-			<div className='p-8'>
-				<div role='alert' className='alert alert-error'>
-					<span>Error: {error}</span>
-				</div>
+			<div className='flex justify-center items-center min-h-[calc(100vh-220px)]'>
+				<span className='loading loading-ring loading-xl text-primary'></span>
 			</div>
 		);
 	}
@@ -71,7 +60,7 @@ const Dashboard = () => {
 				</div>
 			</div>
 
-			<div className='overflow-x-auto'>
+			<div className='overflow-x-auto lg:overflow-x-hidden'>
 				<table className='table table-xs lg:table-md lg:table-pin-cols'>
 					<thead>
 						<tr>
@@ -85,14 +74,16 @@ const Dashboard = () => {
 						{urls.length === 0 ? (
 							<tr>
 								<td colSpan='4'>
-									No URLs shortened yet. Go to home and create one!
+									{error
+										? error
+										: 'No URLs shortened yet. Go to home and create one!'}
 								</td>
 							</tr>
 						) : (
 							urls.map((url) => {
 								const shortFull = `${import.meta.env.VITE_API_URL}/${url.short_code}`;
 								return (
-									<tr key={url.id}>
+									<tr key={url.id} className='hover:bg-base-300'>
 										<td>
 											<a
 												href={url.original_url}
@@ -115,10 +106,10 @@ const Dashboard = () => {
 											</span>
 										</td>
 										<td className=''>
-											<div className='flex justify-start gap-2'>
+											<div className='flex justify-start gap-x-4'>
 												<button
 													onClick={() => copyToClipboard(shortFull)}
-													className='btn btn-ghost btn-sm tooltip'
+													className='btn btn-ghost btn-sm tooltip px-0'
 													data-tip='Copy Link'
 												>
 													<svg
@@ -140,7 +131,7 @@ const Dashboard = () => {
 													href={shortFull}
 													target='_blank'
 													rel='noopener noreferrer'
-													className='btn btn-ghost btn-sm tooltip'
+													className='btn btn-ghost btn-sm tooltip px-0'
 													data-tip='Open Link'
 												>
 													<svg

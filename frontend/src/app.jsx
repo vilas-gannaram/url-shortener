@@ -6,18 +6,15 @@ import Dashboard from './pages/dashboard';
 function App() {
 	return (
 		<BrowserRouter>
-			<div className='min-h-dvh bg-base-300 flex flex-col'>
-				<header className='navbar shadow-md px-4 md:px-8'>
+			<div className='flex flex-col min-h-screen'>
+				<div className='navbar bg-base-100 shadow-sm'>
 					<div className='flex-1'>
-						<Link
-							to='/'
-							className='btn btn-ghost font-bold tracking-tight md:text-lg lg:text-xl'
-						>
+						<Link to='/' className='btn btn-ghost text-xl'>
 							URL Shortener
 						</Link>
 					</div>
 					<div className='flex-none'>
-						<ul className='menu menu-horizontal px-1 gap-2'>
+						<ul className='menu menu-horizontal px-1'>
 							<li>
 								<Link to='/' className='rounded-lg'>
 									Home
@@ -30,7 +27,7 @@ function App() {
 							</li>
 						</ul>
 					</div>
-				</header>
+				</div>
 
 				<main className='flex-1 container mx-auto py-8'>
 					<Routes>
@@ -48,7 +45,7 @@ function App() {
 							href='https://vilas-gannaram.github.io/'
 							target='_blank'
 							rel='noopener noreferrer'
-							className='underline underline-offset-4 font-semibold uppercase inline-block'
+							className='inline-block uppercase'
 						>
 							Vilas Gannaram
 						</a>
